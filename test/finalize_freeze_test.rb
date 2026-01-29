@@ -11,6 +11,22 @@ class FinalizeTest < Minitest::Test
     method :echo, 'function(x) { setTimeout(() => {}, 60000); return x; }'
   end
 
+  def setup
+    @pids_to_cleanup = []
+  end
+
+  def teardown
+    # Clean up any remaining processes to avoid resource exhaustion
+    @pids_to_cleanup.each do |pid|
+      begin
+        Process.kill(:KILL, pid)
+        Process.wait(pid)
+      rescue Errno::ESRCH, Errno::ECHILD
+        # Process already dead or not our child
+      end
+    end
+  end
+
   # Test that the finalizer does not hang when the process is still running.
   #
   # This test reproduces an issue where the old finalizer implementation
@@ -21,7 +37,7 @@ class FinalizeTest < Minitest::Test
   # The fix uses `Process.kill(:KILL, pid)` to actually terminate the process
   # before waiting for it.
   def test_finalizer_does_not_hang
-    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: start"
+    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: start" if ENV['SCHMOOZE_DEBUG']
     finalizer = nil
     pid = nil
 
@@ -30,25 +46,27 @@ class FinalizeTest < Minitest::Test
       schmoozer = LongRunningSchmoozer.new(__dir__)
       schmoozer.echo("test")
       pid = schmoozer.pid
+      @pids_to_cleanup << pid
 
       # Verify the process is running
       assert pid, "Process should be running"
       Process.kill(0, pid)  # Should not raise if process is running
-      $stderr.puts "[DEBUG] test_finalizer_does_not_hang: created pid=#{pid}"
+      $stderr.puts "[DEBUG] test_finalizer_does_not_hang: created pid=#{pid}" if ENV['SCHMOOZE_DEBUG']
     end
 
     # Run the finalizer with a timeout to detect hanging
-    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: calling finalizer..."
+    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: calling finalizer..." if ENV['SCHMOOZE_DEBUG']
     assert_raises_nothing_within(5) do
       finalizer.call
     end
-    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: finalizer completed"
+    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: finalizer completed" if ENV['SCHMOOZE_DEBUG']
 
     # Verify the process was killed
     assert_raises Errno::ESRCH do
       Process.kill(0, pid)
     end
-    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: done"
+    @pids_to_cleanup.delete(pid)  # Already cleaned up by finalizer
+    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: done" if ENV['SCHMOOZE_DEBUG']
   end
 
   # Test that finalizer properly cleans up multiple instances
@@ -58,42 +76,44 @@ class FinalizeTest < Minitest::Test
     pids = []
     finalizers = []
 
-    $stderr.puts "[DEBUG] Creating 5 schmoozer instances..."
+    $stderr.puts "[DEBUG] Creating 5 schmoozer instances..." if ENV['SCHMOOZE_DEBUG']
     ObjectSpace.stub :define_finalizer, proc { |_s, p| finalizers << p } do
       5.times do |i|
-        $stderr.puts "[DEBUG] Creating instance #{i+1}..."
-        $stderr.flush
+        $stderr.puts "[DEBUG] Creating instance #{i+1}..." if ENV['SCHMOOZE_DEBUG']
+        $stderr.flush if ENV['SCHMOOZE_DEBUG']
         schmoozer = LongRunningSchmoozer.new(__dir__)
-        $stderr.puts "[DEBUG] Instance #{i+1} created, calling echo..."
-        $stderr.flush
+        $stderr.puts "[DEBUG] Instance #{i+1} created, calling echo..." if ENV['SCHMOOZE_DEBUG']
+        $stderr.flush if ENV['SCHMOOZE_DEBUG']
         schmoozer.echo("test")
         pids << schmoozer.pid
-        $stderr.puts "[DEBUG] Instance #{i+1} ready, pid=#{schmoozer.pid}"
-        $stderr.flush
+        @pids_to_cleanup << schmoozer.pid
+        $stderr.puts "[DEBUG] Instance #{i+1} ready, pid=#{schmoozer.pid}" if ENV['SCHMOOZE_DEBUG']
+        $stderr.flush if ENV['SCHMOOZE_DEBUG']
       end
     end
 
     assert_equal 5, pids.length
     assert_equal 5, finalizers.length
 
-    $stderr.puts "[DEBUG] Calling finalizers..."
+    $stderr.puts "[DEBUG] Calling finalizers..." if ENV['SCHMOOZE_DEBUG']
     # All finalizers should complete without hanging
     assert_raises_nothing_within(15) do
       finalizers.each_with_index do |finalizer, i|
-        $stderr.puts "[DEBUG] Calling finalizer #{i+1} for pid=#{pids[i]}..."
-        $stderr.flush
+        $stderr.puts "[DEBUG] Calling finalizer #{i+1} for pid=#{pids[i]}..." if ENV['SCHMOOZE_DEBUG']
+        $stderr.flush if ENV['SCHMOOZE_DEBUG']
         finalizer.call
-        $stderr.puts "[DEBUG] Finalizer #{i+1} completed"
-        $stderr.flush
+        $stderr.puts "[DEBUG] Finalizer #{i+1} completed" if ENV['SCHMOOZE_DEBUG']
+        $stderr.flush if ENV['SCHMOOZE_DEBUG']
       end
     end
-    $stderr.puts "[DEBUG] All finalizers completed"
+    $stderr.puts "[DEBUG] All finalizers completed" if ENV['SCHMOOZE_DEBUG']
 
     # All processes should be terminated
     pids.each do |pid|
       assert_raises Errno::ESRCH do
         Process.kill(0, pid)
       end
+      @pids_to_cleanup.delete(pid)  # Already cleaned up by finalizer
     end
   end
 
@@ -108,6 +128,7 @@ class FinalizeTest < Minitest::Test
       schmoozer = LongRunningSchmoozer.new(__dir__)
       schmoozer.echo("test")
       pid = schmoozer.pid
+      @pids_to_cleanup << pid
     end
 
     # Fork and try to run finalizer in child
@@ -138,6 +159,7 @@ class FinalizeTest < Minitest::Test
     assert_raises Errno::ESRCH do
       Process.kill(0, pid)
     end
+    @pids_to_cleanup.delete(pid)  # Already cleaned up by finalizer
   end
 
   # Test that the close method does not hang with long-running processes.
@@ -147,6 +169,7 @@ class FinalizeTest < Minitest::Test
     schmoozer = LongRunningSchmoozer.new(__dir__)
     schmoozer.echo("test")
     pid = schmoozer.pid
+    @pids_to_cleanup << pid
 
     assert pid, "Process should be running"
     Process.kill(0, pid)  # Should not raise
@@ -160,6 +183,7 @@ class FinalizeTest < Minitest::Test
     assert_raises Errno::ESRCH do
       Process.kill(0, pid)
     end
+    @pids_to_cleanup.delete(pid)  # Already cleaned up by close()
   end
 
   private
