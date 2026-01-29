@@ -86,7 +86,7 @@ services:
     working_dir: /app
     command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
 
-  # Ruby 3.4 (latest)
+  # Ruby 3.4
   ruby-3.4:
     build:
       context: .
@@ -98,6 +98,18 @@ services:
     working_dir: /app
     command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
 
+  # Ruby 4.0 (future version)
+  ruby-4.0:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: "4.0"
+    volumes:
+      - .:/app
+      - bundle-cache-ruby40:/usr/local/bundle
+    working_dir: /app
+    command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
+
 volumes:
   bundle-cache-ruby26:
   bundle-cache-ruby27:
@@ -106,3 +118,4 @@ volumes:
   bundle-cache-ruby32:
   bundle-cache-ruby33:
   bundle-cache-ruby34:
+  bundle-cache-ruby40:
