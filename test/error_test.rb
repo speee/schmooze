@@ -4,6 +4,16 @@ require 'fileutils'
 class ErrorTest < Minitest::Test
   FIXTURES_DIR = File.join(__dir__, 'fixtures')
 
+  def setup
+    @schmoozer = nil
+  end
+
+  def teardown
+    if @schmoozer&.pid
+      @schmoozer.close rescue nil
+    end
+  end
+
   class ErrorSchmoozer < Schmooze::Base
     dependencies nonexistant: 'this-package-is-not-here'
     method :bogus, 'bogus'
@@ -54,8 +64,9 @@ class ErrorTest < Minitest::Test
 
   def test_javascript_error
     dir = File.join(FIXTURES_DIR, 'coffee')
+    @schmoozer = CoffeeSchmoozer.new(dir)
     error = assert_raises Schmooze::JavaScript::SyntaxError do
-      CoffeeSchmoozer.new(dir).compile('<=> 1')
+      @schmoozer.compile('<=> 1')
     end
 
     assert_equal <<-ERROR.strip, error.message
@@ -67,27 +78,28 @@ ERROR
 
   def test_late_arriving_dependency
     dir = File.join(FIXTURES_DIR, 'late-dep')
-    late = LateArrivingDependency.new(dir, {"NODE_PATH" => dir})
+    @schmoozer = LateArrivingDependency.new(dir, {"NODE_PATH" => dir})
 
     assert_raises Schmooze::DependencyError do
-      late.test
+      @schmoozer.test
     end
 
     assert_raises Schmooze::DependencyError do
-      late.test
+      @schmoozer.test
     end
 
     File.write(File.join(dir, 'empty.js'), 'module.exports = null;')
 
-    assert_equal late.test, 1
+    assert_equal @schmoozer.test, 1
   ensure
     FileUtils.rm(File.join(dir, 'empty.js'), force: true)
   end
 
   def test_unknown_error
     dir = File.join(FIXTURES_DIR, 'coffee')
+    @schmoozer = UnknownErrorSchmoozer.new(dir)
     error = assert_raises Schmooze::JavaScript::UnknownError do
-      UnknownErrorSchmoozer.new(dir).throw_string
+      @schmoozer.throw_string
     end
     assert_equal '¯\_(ツ)_/¯', error.message
   end

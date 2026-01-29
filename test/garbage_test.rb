@@ -5,11 +5,21 @@ class GarbageTest < Minitest::Test
     method :test, 'function(){ return 1; }'
   end
 
+  def setup
+    @schmoozer = nil
+  end
+
+  def teardown
+    if @schmoozer&.pid
+      @schmoozer.close rescue nil
+    end
+  end
+
   def test_process_is_not_started_until_used
-    garbage = GarbageSchmoozer.new(__dir__)
-    assert_nil garbage.pid
-    garbage.test
-    assert garbage.pid
+    @schmoozer = GarbageSchmoozer.new(__dir__)
+    assert_nil @schmoozer.pid
+    @schmoozer.test
+    assert @schmoozer.pid
   end
 
   def test_process_is_closed
