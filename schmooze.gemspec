@@ -20,4 +20,9 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 2.6.0'
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'minitest', '>= 5.0'
+  # minitest-mock is required for minitest 6.x (Ruby 4.0+) stub support
+  # It requires Ruby >= 3.1, so we only add it conditionally
+  if RUBY_VERSION >= '3.1'
+    spec.add_development_dependency 'minitest-mock'
+  end
 end

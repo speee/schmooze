@@ -9,11 +9,6 @@ class FinalizeTest < Minitest::Test
     # This method keeps the Node.js process running with a setTimeout
     # Even after stdin is closed, the process will wait for the timeout
     method :echo, 'function(x) { setTimeout(() => {}, 60000); return x; }'
-
-    # Expose the finalizer for testing
-    def self.create_finalizer(owner_pid, stdin, stdout, stderr, process_thread)
-      finalize(owner_pid, stdin, stdout, stderr, process_thread)
-    end
   end
 
   # Test that the finalizer does not hang when the process is still running.
@@ -26,23 +21,19 @@ class FinalizeTest < Minitest::Test
   # The fix uses `Process.kill(:KILL, pid)` to actually terminate the process
   # before waiting for it.
   def test_finalizer_does_not_hang
-    # Create a schmoozer and get its internal state
-    schmoozer = LongRunningSchmoozer.new(__dir__)
-    schmoozer.echo("test")
-    pid = schmoozer.pid
+    finalizer = nil
+    pid = nil
 
-    # Get the internal process data
-    stdin = schmoozer.instance_variable_get(:@_schmooze_stdin)
-    stdout = schmoozer.instance_variable_get(:@_schmooze_stdout)
-    stderr = schmoozer.instance_variable_get(:@_schmooze_stderr)
-    process_thread = schmoozer.instance_variable_get(:@_schmooze_process_thread)
+    # Capture the finalizer without letting it run automatically
+    ObjectSpace.stub :define_finalizer, proc { |_s, p| finalizer = p } do
+      schmoozer = LongRunningSchmoozer.new(__dir__)
+      schmoozer.echo("test")
+      pid = schmoozer.pid
 
-    # Create a finalizer manually (simulating what ObjectSpace.define_finalizer does)
-    finalizer = LongRunningSchmoozer.create_finalizer(Process.pid, stdin, stdout, stderr, process_thread)
-
-    # Verify the process is running
-    assert pid, "Process should be running"
-    Process.kill(0, pid)  # Should not raise if process is running
+      # Verify the process is running
+      assert pid, "Process should be running"
+      Process.kill(0, pid)  # Should not raise if process is running
+    end
 
     # Run the finalizer with a timeout to detect hanging
     assert_raises_nothing_within(5) do
@@ -59,23 +50,16 @@ class FinalizeTest < Minitest::Test
   # This tests the scenario where GC.stress is enabled and many instances
   # are created and garbage collected.
   def test_finalizer_handles_multiple_instances_under_gc_pressure
-    instances = []
+    pids = []
     finalizers = []
 
-    5.times do
-      schmoozer = LongRunningSchmoozer.new(__dir__)
-      schmoozer.echo("test")
-
-      stdin = schmoozer.instance_variable_get(:@_schmooze_stdin)
-      stdout = schmoozer.instance_variable_get(:@_schmooze_stdout)
-      stderr = schmoozer.instance_variable_get(:@_schmooze_stderr)
-      process_thread = schmoozer.instance_variable_get(:@_schmooze_process_thread)
-
-      instances << { schmoozer: schmoozer, pid: schmoozer.pid }
-      finalizers << LongRunningSchmoozer.create_finalizer(Process.pid, stdin, stdout, stderr, process_thread)
+    ObjectSpace.stub :define_finalizer, proc { |_s, p| finalizers << p } do
+      5.times do
+        schmoozer = LongRunningSchmoozer.new(__dir__)
+        schmoozer.echo("test")
+        pids << schmoozer.pid
+      end
     end
-
-    pids = instances.map { |i| i[:pid] }
 
     assert_equal 5, pids.length
     assert_equal 5, finalizers.length
@@ -97,17 +81,14 @@ class FinalizeTest < Minitest::Test
   def test_finalizer_is_fork_safe
     skip "Fork not available on this platform" unless Process.respond_to?(:fork)
 
-    schmoozer = LongRunningSchmoozer.new(__dir__)
-    schmoozer.echo("test")
-    pid = schmoozer.pid
+    finalizer = nil
+    pid = nil
 
-    stdin = schmoozer.instance_variable_get(:@_schmooze_stdin)
-    stdout = schmoozer.instance_variable_get(:@_schmooze_stdout)
-    stderr = schmoozer.instance_variable_get(:@_schmooze_stderr)
-    process_thread = schmoozer.instance_variable_get(:@_schmooze_process_thread)
-
-    # Create finalizer with parent's PID
-    finalizer = LongRunningSchmoozer.create_finalizer(Process.pid, stdin, stdout, stderr, process_thread)
+    ObjectSpace.stub :define_finalizer, proc { |_s, p| finalizer = p } do
+      schmoozer = LongRunningSchmoozer.new(__dir__)
+      schmoozer.echo("test")
+      pid = schmoozer.pid
+    end
 
     # Fork and try to run finalizer in child
     child_pid = fork do

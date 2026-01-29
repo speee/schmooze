@@ -3,10 +3,9 @@ require 'schmooze'
 
 require 'minitest/autorun'
 
-# For minitest 6.x compatibility, try to require minitest/mock
-# This provides stub functionality
+# For minitest 6.x, stub is provided by minitest-mock gem
 begin
   require 'minitest/mock'
 rescue LoadError
-  # minitest/mock not available, stub might still work in older versions
+  # minitest 5.x includes mock/stub by default
 end
