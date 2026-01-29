@@ -23,7 +23,7 @@ And then execute:
 If you need the latest bug fixes (including the finalizer freeze fix), you can use the [speee/schmooze](https://github.com/speee/schmooze) fork:
 
 ```ruby
-gem 'schmooze', github: 'speee/schmooze', tag: 'v26.1.0'
+gem 'schmooze', github: 'speee/schmooze', tag: 'v26.1.1'
 ```
 
 ## Usage
