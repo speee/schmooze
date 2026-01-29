@@ -21,6 +21,7 @@ class FinalizeTest < Minitest::Test
   # The fix uses `Process.kill(:KILL, pid)` to actually terminate the process
   # before waiting for it.
   def test_finalizer_does_not_hang
+    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: start"
     finalizer = nil
     pid = nil
 
@@ -33,17 +34,21 @@ class FinalizeTest < Minitest::Test
       # Verify the process is running
       assert pid, "Process should be running"
       Process.kill(0, pid)  # Should not raise if process is running
+      $stderr.puts "[DEBUG] test_finalizer_does_not_hang: created pid=#{pid}"
     end
 
     # Run the finalizer with a timeout to detect hanging
+    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: calling finalizer..."
     assert_raises_nothing_within(5) do
       finalizer.call
     end
+    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: finalizer completed"
 
     # Verify the process was killed
     assert_raises Errno::ESRCH do
       Process.kill(0, pid)
     end
+    $stderr.puts "[DEBUG] test_finalizer_does_not_hang: done"
   end
 
   # Test that finalizer properly cleans up multiple instances
@@ -53,21 +58,31 @@ class FinalizeTest < Minitest::Test
     pids = []
     finalizers = []
 
+    $stderr.puts "[DEBUG] Creating 5 schmoozer instances..."
     ObjectSpace.stub :define_finalizer, proc { |_s, p| finalizers << p } do
-      5.times do
+      5.times do |i|
         schmoozer = LongRunningSchmoozer.new(__dir__)
         schmoozer.echo("test")
         pids << schmoozer.pid
+        $stderr.puts "[DEBUG] Created instance #{i+1}, pid=#{schmoozer.pid}"
       end
     end
 
     assert_equal 5, pids.length
     assert_equal 5, finalizers.length
 
+    $stderr.puts "[DEBUG] Calling finalizers..."
     # All finalizers should complete without hanging
     assert_raises_nothing_within(15) do
-      finalizers.each(&:call)
+      finalizers.each_with_index do |finalizer, i|
+        $stderr.puts "[DEBUG] Calling finalizer #{i+1} for pid=#{pids[i]}..."
+        $stderr.flush
+        finalizer.call
+        $stderr.puts "[DEBUG] Finalizer #{i+1} completed"
+        $stderr.flush
+      end
     end
+    $stderr.puts "[DEBUG] All finalizers completed"
 
     # All processes should be terminated
     pids.each do |pid|
