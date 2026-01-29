@@ -11,6 +11,12 @@ class LocalScriptTest < Minitest::Test
     @schmoozer = LocalScriptSchmoozer.new(File.join(__dir__, 'fixtures', 'local_script'))
   end
 
+  def teardown
+    if @schmoozer&.pid
+      @schmoozer.close rescue nil
+    end
+  end
+
   def test_usage
     assert_equal 456, @schmoozer.test
   end

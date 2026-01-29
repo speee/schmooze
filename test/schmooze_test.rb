@@ -27,6 +27,12 @@ class SchmoozeTest < Minitest::Test
     @schmoozer = CoffeeSchmoozer.new(File.join(__dir__, 'fixtures', 'coffee'))
   end
 
+  def teardown
+    if @schmoozer&.pid
+      @schmoozer.close rescue nil
+    end
+  end
+
   def test_that_it_has_a_version_number
     refute_nil ::Schmooze::VERSION
   end
