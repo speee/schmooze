@@ -18,6 +18,14 @@ And then execute:
 
     $ bundle
 
+### Using the speee/schmooze fork
+
+If you need the latest bug fixes (including the finalizer freeze fix), you can use the [speee/schmooze](https://github.com/speee/schmooze) fork:
+
+```ruby
+gem 'schmooze', github: 'speee/schmooze', tag: 'v26.1.0'
+```
+
 ## Usage
 
 To use Schmooze, you first need to create a sublcass of `Schmooze::Base`. Your subclass needs to list all of the package dependencies, and methods that you want to have available. For example, here is a Schmooze class that interfaces with [Babel](https://babeljs.io/):
@@ -101,9 +109,20 @@ Schmooze::JavaScript::SyntaxError: [stdin]:1:1: error: unexpected <=
 
 * Because we serialize the return values from JavaScript to JSON, you can't return circular data structures (like the Babel AST).
 
+## Changes in speee/schmooze fork
+
+The [speee/schmooze](https://github.com/speee/schmooze) fork includes the following improvements:
+
+- **Fix close() method hanging** - Fixed an issue where the `close()` method would hang indefinitely when used with long-running Node.js processes (e.g., processes using `setTimeout` or event listeners). The fix ensures the process is terminated before waiting for it to exit.
+- **Ruby 3.4 and 4.0 support** - Added support for Ruby 3.4 and Ruby 4.0 with minitest 6.x compatibility.
+- **Docker test setup** - Added Docker configuration for testing across multiple Ruby versions (2.6 - 4.0).
+- **CI improvements** - Updated GitHub Actions workflow with Ruby 3.4/4.0 support and dependency updates.
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/Shopify/schmooze.
+
+For the speee fork, please submit issues and pull requests at https://github.com/speee/schmooze.
 
 ### Make sure the tests pass
 
