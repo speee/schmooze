@@ -1,3 +1,3 @@
 module Schmooze
-  VERSION = "0.2.0"
+  VERSION = "26.1.0"
 end
