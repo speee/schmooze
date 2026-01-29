@@ -95,7 +95,7 @@ JS
     error = assert_raises Schmooze::JavaScript::Error do
       @schmoozer.error
     end
-    assert_match /failed hard/, error.message
+    assert_match(/failed hard/, error.message)
   end
 
   def test_async
@@ -106,7 +106,7 @@ JS
     error = assert_raises Schmooze::JavaScript::Error do
       @schmoozer.async_error
     end
-    assert_match /asynchronously failed so hard/, error.message
+    assert_match(/asynchronously failed so hard/, error.message)
   end
 
   def test_compile

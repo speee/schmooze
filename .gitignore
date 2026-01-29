@@ -8,3 +8,4 @@
 /tmp/
 /test/fixtures/late-dep/empty.js
 node_modules
+Gemfile.lock

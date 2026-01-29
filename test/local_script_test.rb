@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class SchmoozeTest < Minitest::Test
+class LocalScriptTest < Minitest::Test
   class LocalScriptSchmoozer < Schmooze::Base
     dependencies localapp: './localapp'
 
