@@ -61,10 +61,15 @@ class FinalizeTest < Minitest::Test
     $stderr.puts "[DEBUG] Creating 5 schmoozer instances..."
     ObjectSpace.stub :define_finalizer, proc { |_s, p| finalizers << p } do
       5.times do |i|
+        $stderr.puts "[DEBUG] Creating instance #{i+1}..."
+        $stderr.flush
         schmoozer = LongRunningSchmoozer.new(__dir__)
+        $stderr.puts "[DEBUG] Instance #{i+1} created, calling echo..."
+        $stderr.flush
         schmoozer.echo("test")
         pids << schmoozer.pid
-        $stderr.puts "[DEBUG] Created instance #{i+1}, pid=#{schmoozer.pid}"
+        $stderr.puts "[DEBUG] Instance #{i+1} ready, pid=#{schmoozer.pid}"
+        $stderr.flush
       end
     end
 

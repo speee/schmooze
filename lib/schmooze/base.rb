@@ -78,6 +78,8 @@ module Schmooze
       end
 
       def spawn_process
+        $stderr.puts "[SPAWN] Starting popen3..." if ENV['SCHMOOZE_DEBUG']
+        $stderr.flush if ENV['SCHMOOZE_DEBUG']
         process_data = Open3.popen3(
           @_schmooze_env,
           'node',
@@ -85,13 +87,21 @@ module Schmooze
           @_schmooze_code,
           chdir: @_schmooze_root
         )
+        $stderr.puts "[SPAWN] popen3 done, pid=#{process_data[3].pid}" if ENV['SCHMOOZE_DEBUG']
+        $stderr.flush if ENV['SCHMOOZE_DEBUG']
         ensure_packages_are_initiated(*process_data)
+        $stderr.puts "[SPAWN] ensure_packages_are_initiated done" if ENV['SCHMOOZE_DEBUG']
+        $stderr.flush if ENV['SCHMOOZE_DEBUG']
         ObjectSpace.define_finalizer(self, self.class.send(:finalize, Process.pid, *process_data))
         @_schmooze_stdin, @_schmooze_stdout, @_schmooze_stderr, @_schmooze_process_thread = process_data
       end
 
       def ensure_packages_are_initiated(stdin, stdout, stderr, process_thread)
+        $stderr.puts "[SPAWN] Waiting for stdout.gets..." if ENV['SCHMOOZE_DEBUG']
+        $stderr.flush if ENV['SCHMOOZE_DEBUG']
         input = stdout.gets
+        $stderr.puts "[SPAWN] stdout.gets returned: #{input.inspect}" if ENV['SCHMOOZE_DEBUG']
+        $stderr.flush if ENV['SCHMOOZE_DEBUG']
         raise Schmooze::Error, "Failed to instantiate Schmooze process:\n#{stderr.read}" if input.nil?
         result = JSON.parse(input)
         unless result[0] == 'ok'

@@ -33,19 +33,19 @@ jobs:
       run: |
         echo "=== Starting test run 1 at $(date) ==="
         echo "PID: $$"
-        timeout 60 bundle exec rake test TESTOPTS='-v' 2>&1 || echo "Test run 1 completed or timed out"
+        SCHMOOZE_DEBUG=1 timeout 60 bundle exec rake test TESTOPTS='-v' 2>&1 || echo "Test run 1 completed or timed out"
         echo "=== Finished test run 1 at $(date) ==="
 
     - name: Run tests (attempt 2) with verbose output
       run: |
         echo "=== Starting test run 2 at $(date) ==="
-        timeout 60 bundle exec rake test TESTOPTS='-v' 2>&1 || echo "Test run 2 completed or timed out"
+        SCHMOOZE_DEBUG=1 timeout 60 bundle exec rake test TESTOPTS='-v' 2>&1 || echo "Test run 2 completed or timed out"
         echo "=== Finished test run 2 at $(date) ==="
 
     - name: Run tests (attempt 3) with verbose output
       run: |
         echo "=== Starting test run 3 at $(date) ==="
-        timeout 60 bundle exec rake test TESTOPTS='-v' 2>&1 || echo "Test run 3 completed or timed out"
+        SCHMOOZE_DEBUG=1 timeout 60 bundle exec rake test TESTOPTS='-v' 2>&1 || echo "Test run 3 completed or timed out"
         echo "=== Finished test run 3 at $(date) ==="
 
     - name: Check for zombie processes
