@@ -1,0 +1,121 @@
+# Docker Compose for testing schmooze with multiple Ruby versions
+#
+# Usage:
+#   # Run tests for a specific Ruby version
+#   docker compose run --rm ruby-3.3
+#
+#   # Run tests for all Ruby versions
+#   docker compose up
+#
+#   # Build images
+#   docker compose build
+#
+#   # Interactive shell
+#   docker compose run --rm ruby-3.3 bash
+
+services:
+  # Ruby 2.6 (minimum supported version)
+  ruby-2.6:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: "2.6"
+    volumes:
+      - .:/app
+      - bundle-cache-ruby26:/usr/local/bundle
+    working_dir: /app
+    command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
+
+  # Ruby 2.7
+  ruby-2.7:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: "2.7"
+    volumes:
+      - .:/app
+      - bundle-cache-ruby27:/usr/local/bundle
+    working_dir: /app
+    command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
+
+  # Ruby 3.0
+  ruby-3.0:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: "3.0"
+    volumes:
+      - .:/app
+      - bundle-cache-ruby30:/usr/local/bundle
+    working_dir: /app
+    command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
+
+  # Ruby 3.1
+  ruby-3.1:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: "3.1"
+    volumes:
+      - .:/app
+      - bundle-cache-ruby31:/usr/local/bundle
+    working_dir: /app
+    command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
+
+  # Ruby 3.2
+  ruby-3.2:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: "3.2"
+    volumes:
+      - .:/app
+      - bundle-cache-ruby32:/usr/local/bundle
+    working_dir: /app
+    command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
+
+  # Ruby 3.3
+  ruby-3.3:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: "3.3"
+    volumes:
+      - .:/app
+      - bundle-cache-ruby33:/usr/local/bundle
+    working_dir: /app
+    command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
+
+  # Ruby 3.4
+  ruby-3.4:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: "3.4"
+    volumes:
+      - .:/app
+      - bundle-cache-ruby34:/usr/local/bundle
+    working_dir: /app
+    command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
+
+  # Ruby 4.0 (future version)
+  ruby-4.0:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: "4.0"
+    volumes:
+      - .:/app
+      - bundle-cache-ruby40:/usr/local/bundle
+    working_dir: /app
+    command: bash -c "rm -f Gemfile.lock && bundle install && cd test/fixtures/coffee && npm install && cd /app && bundle exec rake test"
+
+volumes:
+  bundle-cache-ruby26:
+  bundle-cache-ruby27:
+  bundle-cache-ruby30:
+  bundle-cache-ruby31:
+  bundle-cache-ruby32:
+  bundle-cache-ruby33:
+  bundle-cache-ruby34:
+  bundle-cache-ruby40:
